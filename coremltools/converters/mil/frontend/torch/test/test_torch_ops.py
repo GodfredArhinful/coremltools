@@ -4042,6 +4042,30 @@ class TestMaxPool(TorchBaseTest):
         )
 
     @pytest.mark.parametrize(
+        "compute_unit, backend, frontend, function, input_shape",
+        [
+            (compute_unit, backend, frontend, function, input_shape)
+            for compute_unit, backend, frontend, (function, input_shape) in itertools.product(
+                compute_units,
+                backends,
+                frontends,
+                [
+                    (torch.nn.functional.max_pool1d, (1, 3, 8)),
+                    (torch.nn.functional.max_pool2d, (1, 3, 8, 8)),
+                    (torch.nn.functional.max_pool3d, (1, 3, 8, 8, 8)),
+                ],
+            )
+        ],
+    )
+    def test_max_pool_default_stride(self, compute_unit, backend, frontend, function, input_shape):
+        # F.max_pool2d(x, 2), as in the PyTorch MNIST example. torch.export leaves out
+        # the default stride instead of passing an empty list.
+        model = ModuleWrapper(function=function, kwargs={"kernel_size": 2})
+        self.run_compare_torch(
+            input_shape, model, frontend=frontend, backend=backend, compute_unit=compute_unit
+        )
+
+    @pytest.mark.parametrize(
         "compute_unit, backend, frontend",
         itertools.product(compute_units, backends, frontends),
     )

@@ -2139,13 +2139,18 @@ def _adjust_pad_for_ceil_mode(input_shape, kernel_size, stride_sizes, pad_sizes)
     ]
 )
 def max_pool1d(context, node):
-    inputs = _get_inputs(context, node, min_expected=3)
+    inputs = _get_inputs(context, node, min_expected=2)
 
     x = inputs[0]
     kernel_sizes = inputs[1]
-    strides = inputs[2]
-    if strides.op.op_type == "const" and (not list(strides.val)):
-        strides = mb.const(val=kernel_sizes.val, name=strides.name)
+    # The stride defaults to the kernel size. TorchScript passes an empty list for it,
+    # while torch.export leaves the argument out.
+    if len(inputs) < 3:
+        strides = mb.const(val=kernel_sizes.val)
+    else:
+        strides = inputs[2]
+        if strides.op.op_type == "const" and (not list(strides.val)):
+            strides = mb.const(val=kernel_sizes.val, name=strides.name)
 
     pad_type = "custom"
 
